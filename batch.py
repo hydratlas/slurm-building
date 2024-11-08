@@ -23,11 +23,11 @@ def main():
   sources_dir_path.mkdir(parents=True, exist_ok=True) # sourcesディレクトリーを作成
   for ver in slurm_versions:
     # ダウンロード
-    download_file_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{ver}.tar.bz2"))
+    download_file_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{ver['version']}.tar.bz2"))
     download(ver['url'], download_file_path)
 
     # 展開
-    extract_dir_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{ver}"))
+    extract_dir_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{ver['version']}"))
     extract_dir_path.mkdir(parents=True, exist_ok=True)
     extract(download_file_path, extract_dir_path)
 
@@ -83,8 +83,7 @@ def check_docker_image_exists(image_name):
 def download(url: str, download_file_path: pathlib.PurePath):
   try:
     data = urllib.request.urlopen(url).read()
-    p = download_file_path.resolve()
-    with p.open("wb") as f:
+    with download_file_path.open("wb") as f:
       f.write(data)
   except urllib.error.HTTPError as e:
     print(f"HTTP error occurred: {e.code} - {e.reason}")
