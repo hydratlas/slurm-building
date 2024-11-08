@@ -83,7 +83,8 @@ def check_docker_image_exists(image_name):
 def download(url: str, download_file_path: pathlib.PurePath):
   try:
     data = urllib.request.urlopen(url).read()
-    with download_file_path.open("wb") as f:
+    p = download_file_path.resolve()
+    with p.open("wb") as f:
       f.write(data)
   except urllib.error.HTTPError as e:
     print(f"HTTP error occurred: {e.code} - {e.reason}")
