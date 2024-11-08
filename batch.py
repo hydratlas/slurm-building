@@ -23,11 +23,11 @@ def main():
   sources_dir_path.mkdir(parents=True, exist_ok=True) # sourcesディレクトリーを作成
   for ver in slurm_versions:
     # ダウンロード
-    download_file_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{slurm_version}.tar.bz2"))
+    download_file_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{ver}.tar.bz2"))
     download(ver['url'], download_file_path)
 
     # 展開
-    extract_dir_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{slurm_version}"))
+    extract_dir_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{ver}"))
     extract_dir_path.mkdir(parents=True, exist_ok=True)
     extract(download_file_path, extract_dir_path)
 
@@ -49,6 +49,8 @@ def main():
 
 def docker_image_building(base_name: str, base_tag: str, image_version: str):
   image_name = f"slurm-building:{image_version}-{base_name}{base_tag}"
+  if (check_docker_image_exists(image_name)):
+    return image_name
   try:
     command = ["docker", "build", \
       "--tag", image_name, \
@@ -62,6 +64,21 @@ def docker_image_building(base_name: str, base_tag: str, image_version: str):
     raise
   print(f"Docker image build successfully to {image_name}")
   return image_name
+
+def check_docker_image_exists(image_name):
+  try:
+    # Dockerイメージの確認コマンド
+    command = ["docker", "image", "inspect", image_name]
+    
+    # subprocess.runでコマンドを実行
+    result = subprocess.run(command, check=True, capture_output=True, text=True)
+    
+    # イメージが存在する場合
+    return True
+  
+  except subprocess.CalledProcessError:
+    # イメージが存在しない場合
+    return False
 
 def download(url: str, download_file_path: pathlib.PurePath):
   try:
