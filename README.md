@@ -23,16 +23,16 @@ docker build \
 ### Building Slurm
 run in the `slurm-building` directory.
 ```sh
-mkdir -p input &&
-wget -O input/slurm-24.05.tar.bz2 https://download.schedmd.com/slurm/slurm-24.05-latest.tar.bz2 &&
-mkdir -p input/slurm-24.05 &&
-tar -xa -C input/slurm-24.05 --strip-components=1 -f input/slurm-24.05.tar.bz2 &&
-mkdir -p output &&
+mkdir -p sources &&
+wget -O sources/slurm-24.05.tar.bz2 https://download.schedmd.com/slurm/slurm-24.05-latest.tar.bz2 &&
+mkdir -p sources/slurm-24.05 &&
+tar -xa -C sources/slurm-24.05 --strip-components=1 -f sources/slurm-24.05.tar.bz2 &&
+mkdir -p binary &&
 docker run \
   --name slurm-building \
   --rm \
-  -v "$PWD/output:/app/output:rw" \
-  -v "$PWD/input/slurm-24.05:/app/output/input:rw" \
+  -v "$PWD/binary:/app/binary:rw" \
+  -v "$PWD/sources/slurm-24.05:/app/binary/source:rw" \
   slurm-building:0.1-ubuntu24.04
 ```
 `.deb` files are generated in the `slurm-24.05` directory.
@@ -42,8 +42,8 @@ docker run \
 docker run \
   --name slurm-building \
   --rm \
-  -v "$PWD/output:/app/output:rw" \
-  -v "$PWD/input/slurm-24.05:/app/output/input:rw" \
+  -v "$PWD/binary:/app/binary:rw" \
+  -v "$PWD/sources/slurm-24.05:/app/binary/source:rw" \
   -it --entrypoint "bash" \
   slurm-building:0.1-ubuntu24.04
 ```

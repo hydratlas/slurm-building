@@ -19,35 +19,33 @@ def main():
     env['docker_image_name'] = docker_image_name
 
   # Slurmのソースコードをダウンロード・展開
+  sources_dir_path = pathlib.Path("sources")
+  sources_dir_path.mkdir(parents=True, exist_ok=True) # sourcesディレクトリーを作成
   for ver in slurm_versions:
-    download_file_path = download_source(ver['version'], ver['url'])
-    extract_source(download_file_path, ver['version'])
+    # ダウンロード
+    download_file_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{slurm_version}.tar.bz2"))
+    download(ver['url'], download_file_path)
+
+    # 展開
+    extract_dir_path = sources_dir_path.joinpath(pathlib.Path(f"slurm-{slurm_version}"))
+    extract_dir_path.mkdir(parents=True, exist_ok=True)
+    extract(download_file_path, extract_dir_path)
+
+    ver['dir_path'] = extract_dir_path
 
   # Slurmをビルド
+  binarys_dir_path = pathlib.Path("binarys")
+  binarys_dir_path.mkdir(parents=True, exist_ok=True) # binaryディレクトリーを作成
   for env in environments:
     base_name = env['name']
     base_tag = env['tag']
     docker_image_name = env['docker_image_name']
 
-    # 各環境用のディレクトリーを作成
-    environment_dir = pathlib.Path(f"{base_name}{base_tag}").resolve()
-    environment_dir.mkdir(parents=True, exist_ok=True)
+    environment_dir_path = binarys_dir_path.joinpath(pathlib.Path(f"{base_name}{base_tag}"))
+    environment_dir_path.mkdir(parents=True, exist_ok=True) # 各環境用のディレクトリーを作成
     for ver in slurm_versions:
-      slurm_version = ver['version']
-
-      # 各環境用のディレクトリーから、make.shへのシンボリックリンクを作成
-      link_path = environment_dir.joinpath(pathlib.Path("make.sh")).resolve()
-      target_path = pathlib.Path(f"../files/make.sh")
-      link_path.symlink_to(target_path)
-
-      # 各環境用のディレクトリーから、ソースコードへのシンボリックリンクを作成
-      source_directory = f"slurm-{slurm_version}"
-      link_path = environment_dir.joinpath(pathlib.Path(source_directory)).resolve()
-      target_path = pathlib.Path(f"../files/{source_directory}")
-      link_path.symlink_to(target_path)
-
-      # ビルド
-      slurm_building(docker_image_name, environment_dir, source_directory)
+      source_dir_path = ver['dir_path']
+      slurm_building(docker_image_name, source_dir_path, environment_dir_path)
 
 def docker_image_building(base_name: str, base_tag: str, image_version: str):
   image_name = f"slurm-building:{image_version}-{base_name}{base_tag}"
@@ -62,13 +60,12 @@ def docker_image_building(base_name: str, base_tag: str, image_version: str):
     print("Failed to build Docker image.")
     print("Error:", e.stderr)
     raise
-  print(f"Docker image built successfully to {image_name}")
+  print(f"Docker image build successfully to {image_name}")
   return image_name
 
-def download_source(slurm_version: str, slurm_url: str):
-  download_file_path = pathlib.Path(f"files/slurm-{slurm_version}.tar.bz2").resolve()
+def download(url: str, download_file_path: pathlib.PurePath):
   try:
-    data = urllib.request.urlopen(slurm_url).read()
+    data = urllib.request.urlopen(url).read()
     with download_file_path.open("wb") as f:
       f.write(data)
   except urllib.error.HTTPError as e:
@@ -81,11 +78,8 @@ def download_source(slurm_version: str, slurm_url: str):
     print(f"An error occurred: {e}")
     raise
   print(f"File downloaded successfully and saved to {download_file_path.name}")
-  return download_file_path
 
-def extract_source(archive_file_path: pathlib.PurePath, slurm_version: str):
-  extract_dir_path = archive_file_path.joinpath(pathlib.Path(f"../slurm-{slurm_version}")).resolve()
-  extract_dir_path.mkdir(parents=True, exist_ok=True)
+def extract(archive_file_path: pathlib.PurePath, extract_dir_path: pathlib.PurePath):
   with tarfile.open(archive_file_path, "r:bz2") as tar:
     # 各メンバーを1階層スキップして展開
     for member in tar.getmembers():
@@ -99,18 +93,19 @@ def extract_source(archive_file_path: pathlib.PurePath, slurm_version: str):
       tar.extract(member, path=extract_dir_path)
   print(f"Extracted {archive_file_path.name} to {extract_dir_path.name} with 1 component stripped.")
 
-def slurm_building(docker_image_name: str, bind_directory: pathlib.PurePath, source_directory: str):
+def slurm_building(docker_image_name: str, source_dir_path: pathlib.PurePath, binary_dir_path: pathlib.PurePath):
   try:
     command = ["docker", "run", \
         "--rm", \
-        "-v", f"{bind_directory}:/app:rw", \
-        "--env", f"DIR=\"{source_directory}\"", \
+        "-v", f"{binary_dir_path.resolve()}:/app/binary:rw", \
+        "-v", f"{source_dir_path.resolve()}:/app/binary/source:rw", \
         docker_image_name]
     result = subprocess.run(command, check=True, capture_output=True, text=True)
   except subprocess.CalledProcessError as e:
     print("Failed to build Slurm.")
     print("Error:", e.stderr)
     raise
+  print(f"Slurm build successfully to {source_dir_path.name} {binary_dir_path.name}")
 
 if __name__ == "__main__":
   main()
