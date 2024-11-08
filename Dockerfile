@@ -7,4 +7,4 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
       build-essential fakeroot devscripts equivs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-ENTRYPOINT ["/bin/bash", "-cx", "/app/make.sh", "${DIR}"]
+ENTRYPOINT ["/bin/bash", "-cx", "/app/make.sh \"${DIR}\""]
