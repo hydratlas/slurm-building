@@ -36,17 +36,18 @@ def main():
       slurm_version = ver['version']
 
       # 各環境用のディレクトリーから、make.shへのシンボリックリンクを作成
-      link_path = pathlib.Path(f"{base_name}{base_tag}/make.sh")
-      target_path = pathlib.Path(f"files/make.sh")
+      link_path = environment_dir.joinpath(pathlib.Path("make.sh")).resolve()
+      target_path = pathlib.Path(f"../files/make.sh")
       link_path.symlink_to(target_path)
 
       # 各環境用のディレクトリーから、ソースコードへのシンボリックリンクを作成
-      link_path = pathlib.Path(f"{base_name}{base_tag}/slurm-{slurm_version}")
-      target_path = pathlib.Path(f"files/slurm-{slurm_version}")
+      source_directory = f"slurm-{slurm_version}"
+      link_path = environment_dir.joinpath(pathlib.Path(source_directory)).resolve()
+      target_path = pathlib.Path(f"../files/{source_directory}")
       link_path.symlink_to(target_path)
 
       # ビルド
-      slurm_building(docker_image_name, environment_dir, f"slurm-{slurm_version}")
+      slurm_building(docker_image_name, environment_dir, source_directory)
 
 def docker_image_building(base_name: str, base_tag: str, image_version: str):
   image_name = f"slurm-building:{image_version}-{base_name}{base_tag}"
@@ -69,16 +70,16 @@ def download_source(slurm_version: str, slurm_url: str):
   try:
     data = urllib.request.urlopen(slurm_url).read()
     with download_file_path.open("wb") as f:
-        f.write(data)
+      f.write(data)
   except urllib.error.HTTPError as e:
-      print(f"HTTP error occurred: {e.code} - {e.reason}")
-      raise
+    print(f"HTTP error occurred: {e.code} - {e.reason}")
+    raise
   except urllib.error.URLError as e:
-      print(f"URL error occurred: {e.reason}")
-      raise
+    print(f"URL error occurred: {e.reason}")
+    raise
   except Exception as e:
-      print(f"An error occurred: {e}")
-      raise
+    print(f"An error occurred: {e}")
+    raise
   print(f"File downloaded successfully and saved to {download_file_path.name}")
   return download_file_path
 
@@ -100,16 +101,12 @@ def extract_source(archive_file_path: pathlib.PurePath, slurm_version: str):
 
 def slurm_building(docker_image_name: str, bind_directory: pathlib.PurePath, source_directory: str):
   try:
-    result = subprocess.run(
-      ["docker", "run", \
+    command = ["docker", "run", \
         "--rm", \
         "-v", f"{bind_directory}:/app:rw", \
         "--env", f"DIR=\"{source_directory}\"", \
-        docker_image_name],
-      check=True,
-      capture_output=True,
-      text=True
-      )
+        docker_image_name]
+    result = subprocess.run(command, check=True, capture_output=True, text=True)
   except subprocess.CalledProcessError as e:
     print("Failed to build Slurm.")
     print("Error:", e.stderr)
