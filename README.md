@@ -1,5 +1,5 @@
 # slurm-building
-Build Slurm for Ubuntu.
+Build Slurm for Debian or Ubuntu.
 
 ## Install prerequisite packages
 ```sh
@@ -27,22 +27,22 @@ mkdir -p sources &&
 wget -O sources/slurm-24.05.tar.bz2 https://download.schedmd.com/slurm/slurm-24.05-latest.tar.bz2 &&
 mkdir -p sources/slurm-24.05 &&
 tar -xa -C sources/slurm-24.05 --strip-components=1 -f sources/slurm-24.05.tar.bz2 &&
-mkdir -p binary &&
+mkdir -p binarys/ubuntu24.04 &&
 docker run \
   --name slurm-building \
   --rm \
-  -v "$PWD/binary:/app/binary:rw" \
+  -v "$PWD/binarys/ubuntu24.04:/app/binary:rw" \
   -v "$PWD/sources/slurm-24.05:/app/binary/source:rw" \
   slurm-building:0.1-ubuntu24.04
 ```
-`.deb` files are generated in the `slurm-24.05` directory.
+`.deb` files are generated in the `binarys/ubuntu24.04` directory.
 
 ### Debugging Containers
 ```sh
 docker run \
   --name slurm-building \
   --rm \
-  -v "$PWD/binary:/app/binary:rw" \
+  -v "$PWD/binarys/ubuntu24.04:/app/binary:rw" \
   -v "$PWD/sources/slurm-24.05:/app/binary/source:rw" \
   -it --entrypoint "bash" \
   slurm-building:0.1-ubuntu24.04
